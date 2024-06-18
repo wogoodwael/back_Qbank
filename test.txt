@@ -1,0 +1,102 @@
+
+  //   let templateString = {
+  //     textField: "mySentence1*myAnswer1/myAltAnswer1:myTip1 \\\\+myHintT1 \\\\-myHintF1*"
+  // }; // only one sentence
+  
+  // let templateSentence = "Sentence1*Answer1:Tip1 \\\\+HintT1 \\\\-HintF1*"; // only one sentence
+  
+  // let h5pString = "textField: "; // the header of the Template of h5p
+  
+  // // Loop
+  // let workingSentence = templateSentence;
+  // workingSentence = workingSentence.replace("mySentence1", Sentence.value); // The capital of Egypt
+  // workingSentence = workingSentence.replace("myAnswer1", Answer.value); // Cairo
+  // workingSentence = workingSentence.replace("myAltAnswer1", AltAnswer.value); // Alex
+  // workingSentence = workingSentence.replace("myTip1", Tip.value); // Tip Egypt
+  // workingSentence = workingSentence.replace("myHintT1", HintIfTrue.value); // HintT Egypt
+  // workingSentence = workingSentence.replace("myHintF1", HintIfFalse.value); // HintF Egypt
+  
+  // h5pString += workingSentence + "\\n";
+  
+  // // End Loop until all options are finished
+  
+
+
+
+
+  //     const question = objectElements.find(element => element.hasOwnProperty("question"))?.question;
+   
+//     const questionParts = question.split("?");
+//     const firstPart = questionParts[0].trim();
+//         const secondPart = questionParts[1].trim();
+
+// const correctAnswerPart=correctAnswer.split("*");
+
+//     const firstCorrectAnswer= correctAnswerPart[0].trim();
+//     const secondCorrectAnswer= correctAnswerPart[1].trim();
+    
+    // console.log(firstPart);
+    // console.log(secondPart);
+
+
+    //!
+
+      correctAnswer  = labels.find(label => label._Answer_)?._Answer_;
+  Tip  = labels.find(label => label._Tip_)?._Tip_;
+  console.log(correctAnswer)
+
+    router.post("/saveObjectFillTheBlank/:id", async (req, res) => {
+ 
+  const id = req.params.id
+    const { objectElements } = req.body
+    const newObj = {}
+    const correctAnswer = objectElements.find(element => element.hasOwnProperty("_Answer_"))?._Answer_;
+    const Tip = objectElements.find(element => element.hasOwnProperty("_Tip_"))?._Tip_;
+  
+    newObj.type = "FillTheBlank"
+    const parameters = { question: "", answers: [] }
+    const h5pString = { questions: "", answers: [] }
+    for (let item of objectElements) {
+        let key = Object.keys(item)[0]
+
+        if (key === "_Question_") {
+            parameters.question = item[key]
+            h5pString.questions = `<p>${item[key]} * ${correctAnswer}:${Tip}*</p>`
+        } else if (key === "_Answer_") {
+            parameters.answers.push({ text: item[key], correct: false, tipsAndFeedback: {} })
+            // h5pString.answers.push({ text: `<div>${item[key]}</div>\\n`, correct: false, tipsAndFeedback: {} })
+        } else if (key === "chosenFeedback") {
+            parameters.answers[parameters.answers.length - 1]["tipsAndFeedback"]["chosenFeedback"] = item[key]
+            // h5pString.answers[h5pString.answers.length - 1]["tipsAndFeedback"]["chosenFeedback"] = `<div>\\n<div>\\n<div>${item[key]}</div>\\n</div>\\n</div>\\n`
+        } else if (key === "notChosenFeedback") {
+            parameters.answers[parameters.answers.length - 1]["tipsAndFeedback"]["notChosenFeedback"] = item[key]
+            // h5pString.answers[h5pString.answers.length - 1]["tipsAndFeedback"]["notChosenFeedback"] = `<div>\\n<div>\\n<div>${item[key]}</div>\\n</div>\\n</div>\\n`
+        } else if (key === "tip") {
+            parameters.answers[parameters.answers.length - 1]["tipsAndFeedback"]["tip"] = item[key]
+            // h5pString.answers[h5pString.answers.length - 1]["tipsAndFeedback"]["tip"] = `<p>${item[key]}</p>\\n`
+        } else if (key === "correct") {
+            parameters.answers[parameters.answers.length - 1]["correct"] = item[key]
+            // h5pString.answers[h5pString.answers.length - 1]["correct"] = item[key]
+            newObj.isAnswered = 'g'
+        }
+    }
+    h5pString.answers = JSON.stringify(h5pString.answers).replace(/\\\\/g, "\\")
+
+    newObj.parameters = parameters
+    newObj.h5pString = h5pString
+    interactiveObjectSchema.updateOne(
+    { _id: id },
+    {
+      $set: newObj,
+    },
+    { new: false, runValidators: true, returnNewDocument: true, upsert: true },
+    (err, doc) => {
+      if (!err) {
+        res.status(200).json(newObj);
+      } else {
+        res.status(500).json(err);
+      }
+    }
+  );
+
+});
